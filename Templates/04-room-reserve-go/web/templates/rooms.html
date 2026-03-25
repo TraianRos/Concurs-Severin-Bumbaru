@@ -1,0 +1,10 @@
+{{ define "rooms.html" }}
+<section class="panel">
+    <h2>Available rooms</h2>
+    <ul class="list-shell">
+        {{ range .Rooms }}
+            <li><strong>{{ .Name }}</strong><span>{{ .Capacity }} seats - {{ .Location }}</span></li>
+        {{ end }}
+    </ul>
+</section>
+{{ end }}

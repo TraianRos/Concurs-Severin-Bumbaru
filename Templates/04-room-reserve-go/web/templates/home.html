@@ -1,0 +1,25 @@
+{{ define "home.html" }}
+<section class="hero-shell">
+    <p>Current rooms and the latest reservations in one place.</p>
+</section>
+
+<section class="grid-shell">
+    <article class="panel">
+        <h2>Rooms</h2>
+        <ul class="list-shell">
+            {{ range .Rooms }}
+                <li><strong>{{ .Name }}</strong><span>{{ .Capacity }} seats - {{ .Location }}</span></li>
+            {{ end }}
+        </ul>
+    </article>
+
+    <article class="panel">
+        <h2>Reservations</h2>
+        <ul class="list-shell">
+            {{ range .Reservations }}
+                <li><strong>{{ .RoomName }}</strong><span>{{ .ReservationDate }} - {{ .StartTime }}-{{ .EndTime }} - {{ .ReservedBy }}</span></li>
+            {{ end }}
+        </ul>
+    </article>
+</section>
+{{ end }}

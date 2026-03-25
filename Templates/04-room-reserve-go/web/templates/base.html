@@ -1,0 +1,33 @@
+{{ define "base.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .PageTitle }}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script defer src="/static/app.js"></script>
+</head>
+<body>
+    <header class="site-header">
+        <div>
+            <p class="eyebrow">RoomReserve</p>
+            <h1>{{ .PageTitle }}</h1>
+        </div>
+        <nav class="site-nav">
+            <a href="/">Dashboard</a>
+            <a href="/rooms">Rooms</a>
+            <a href="/reservations/new">Reserve</a>
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        {{ if .Message }}
+            <p class="flash-message">{{ .Message }}</p>
+        {{ end }}
+        {{ template .Content . }}
+    </main>
+</body>
+</html>
+{{ end }}
+

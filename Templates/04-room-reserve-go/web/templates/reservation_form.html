@@ -1,0 +1,42 @@
+{{ define "reservation_form.html" }}
+<section class="panel">
+    <h2>Create reservation</h2>
+    <form method="post" action="/reservations/new" class="stack-form" id="reservation-form">
+        <label>
+            <span>Room</span>
+            <select name="room_id" id="room-select" required>
+                {{ range .Rooms }}
+                    <option value="{{ .ID }}">{{ .Name }}</option>
+                {{ end }}
+            </select>
+        </label>
+
+        <label>
+            <span>Date</span>
+            <input type="date" name="reservation_date" id="date-input" required>
+        </label>
+
+        <label>
+            <span>Time slot</span>
+            <select name="slot_id" id="slot-select" required>
+                {{ range .Slots }}
+                    <option value="{{ .ID }}">{{ .StartTime }} - {{ .EndTime }}</option>
+                {{ end }}
+            </select>
+        </label>
+
+        <label>
+            <span>Reserved by</span>
+            <input type="text" name="reserved_by" required>
+        </label>
+
+        <label>
+            <span>Purpose</span>
+            <input type="text" name="purpose" required>
+        </label>
+
+        <button type="submit">Save reservation</button>
+    </form>
+</section>
+{{ end }}
+

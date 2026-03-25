@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="grid-shell">
+    {% for event in events %}
+        <article class="event-block">
+            <h2>{{ event.title }}</h2>
+            <p>{{ event.location }}</p>
+            <p>{{ event.start_date }}</p>
+            <p>{{ event.seats }} seats</p>
+            <a href="{{ url_for('web.event_detail', event_id=event.id) }}">View event</a>
+        </article>
+    {% endfor %}
+</section>
+{% endblock %}
+

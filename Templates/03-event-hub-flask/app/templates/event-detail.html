@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="event-detail">
+    <article class="event-block">
+        <h2>{{ event.title }}</h2>
+        <p>{{ event.location }}</p>
+        <p>{{ event.start_date }}</p>
+        <p>{{ event.seats }} seats total</p>
+    </article>
+
+    <section class="form-shell">
+        <h3>Register attendee</h3>
+        <form method="post" action="{{ url_for('web.register', event_id=event.id) }}">
+            <label>
+                <span>Full name</span>
+                <input type="text" name="full_name" required>
+            </label>
+            <label>
+                <span>Email</span>
+                <input type="email" name="email" required>
+            </label>
+            <button type="submit">Register</button>
+        </form>
+    </section>
+</section>
+{% endblock %}
+

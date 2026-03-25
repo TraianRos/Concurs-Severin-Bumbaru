@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuizLab</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="hero">
+            <div>
+                <p class="eyebrow">QuizLab</p>
+                <h1>Local scoring, server validation.</h1>
+            </div>
+            <p id="status-text">Loading quizzes...</p>
+        </header>
+
+        <section class="workspace">
+            <section class="selection-panel">
+                <h2>Select quiz</h2>
+                <div id="quiz-list" class="quiz-list"></div>
+            </section>
+
+            <section class="quiz-panel">
+                <div id="quiz-detail">
+                    <p>Select a quiz to start.</p>
+                </div>
+            </section>
+
+            <aside class="leaderboard-panel">
+                <h2>Leaderboard</h2>
+                <ul id="leaderboard-list" class="leaderboard-list"></ul>
+            </aside>
+        </section>
+    </main>
+
+    <script type="module" src="/js/app.js"></script>
+</body>
+</html>
+
