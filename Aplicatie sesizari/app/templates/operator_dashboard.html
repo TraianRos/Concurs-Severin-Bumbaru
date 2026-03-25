@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <p class="eyebrow">Zona interna</p>
+        <h1>Dashboard operator</h1>
+    </div>
+</section>
+
+<section class="panel">
+    <p class="muted-text">
+        Aici apar sesizarile care sunt noi sau care sunt alocate departamentului din care face parte operatorul curent.
+    </p>
+</section>
+
+<section class="card-grid">
+    {% for incident in queue %}
+        <article class="card">
+            <div class="card-tags">
+                <span class="pill pill-{{ incident.status }}">{{ incident.status_label }}</span>
+                <span class="pill pill-neutral">{{ incident.priority_label }}</span>
+            </div>
+            <h2>{{ incident.title }}</h2>
+            <p>{{ incident.address }}</p>
+            <p class="muted-text">{{ incident.category.name }} -> {{ incident.assigned_department.name }}</p>
+            <a class="text-link" href="{{ url_for('web.incident_detail', incident_id=incident.id) }}">Deschide si actualizeaza</a>
+        </article>
+    {% else %}
+        <article class="card">
+            <h2>Nu exista sesizari in coada</h2>
+            <p>Toate cazurile sunt deja inchise sau nu au fost create inca.</p>
+        </article>
+    {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <p class="eyebrow">Detaliu sesizare</p>
+        <h1>{{ incident.title }}</h1>
+    </div>
+    <div class="card-tags">
+        <span class="pill pill-{{ incident.status }}">{{ incident.status_label }}</span>
+        <span class="pill pill-neutral">{{ incident.priority_label }}</span>
+    </div>
+</section>
+
+<section class="layout-two-columns">
+    <div class="content-stack">
+        <article class="panel">
+            <h2>Informatii principale</h2>
+            <dl class="detail-grid">
+                <div>
+                    <dt>Categorie</dt>
+                    <dd>{{ incident.category.name }}</dd>
+                </div>
+                <div>
+                    <dt>Departament curent</dt>
+                    <dd>{{ incident.assigned_department.name }}</dd>
+                </div>
+                <div>
+                    <dt>Adresa</dt>
+                    <dd>{{ incident.address }}</dd>
+                </div>
+                <div>
+                    <dt>Autor</dt>
+                    <dd>{{ incident.creator.full_name }}</dd>
+                </div>
+                <div>
+                    <dt>Creat la</dt>
+                    <dd>{{ incident.created_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+                </div>
+                <div>
+                    <dt>Actualizat la</dt>
+                    <dd>{{ incident.updated_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+                </div>
+            </dl>
+            <p>{{ incident.description }}</p>
+        </article>
+
+        <article class="panel">
+            <h2>Istoric actualizari</h2>
+            <div class="timeline">
+                {% for update in incident.updates %}
+                    <article class="timeline-item">
+                        <p class="timeline-meta">
+                            {{ update.author.full_name }} · {{ update.created_at.strftime("%d.%m.%Y %H:%M") }}
+                        </p>
+                        <p>{{ update.message }}</p>
+                        {% if update.new_status %}
+                            <p class="muted-text">
+                                Status:
+                                {{ status_labels.get(update.old_status, "fara status anterior") }}
+                                ->
+                                {{ status_labels.get(update.new_status, update.new_status) }}
+                            </p>
+                        {% endif %}
+                    </article>
+                {% else %}
+                    <p>Nu exista actualizari inca.</p>
+                {% endfor %}
+            </div>
+        </article>
+    </div>
+
+    <div class="content-stack">
+        <section class="panel">
+            <h2>Locatie</h2>
+            <div
+                id="incident-detail-map"
+                class="map-block compact-map"
+                data-lat="{{ incident.latitude }}"
+                data-lng="{{ incident.longitude }}"
+                data-title="{{ incident.title }}"
+                aria-label="Harta pozitiei sesizarii"
+            ></div>
+        </section>
+
+        {% if current_user.role in ["operator", "admin"] %}
+            <section class="form-card">
+                <h2>Actualizare operator</h2>
+                <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid">
+                    <label for="status">Status nou</label>
+                    <select id="status" name="status" required>
+                        {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if incident.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="assigned_department_id">Departament</label>
+                    <select id="assigned_department_id" name="assigned_department_id" required>
+                        {% for department in departments %}
+                            <option
+                                value="{{ department.id }}"
+                                {% if incident.assigned_department_id == department.id %}selected{% endif %}
+                            >
+                                {{ department.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="message">Mesaj pentru istoric</label>
+                    <textarea id="message" name="message" rows="5" placeholder="Exemplu: trimitem echipa in teren maine dimineata."></textarea>
+
+                    <button type="submit">Salveaza actualizarea</button>
+                </form>
+            </section>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

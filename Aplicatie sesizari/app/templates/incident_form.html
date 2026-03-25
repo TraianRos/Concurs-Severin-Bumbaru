@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <p class="eyebrow">Raportare noua</p>
+        <h1>Trimite o sesizare</h1>
+    </div>
+</section>
+
+<section class="layout-two-columns">
+    <article class="form-card">
+        <form method="post" class="form-grid">
+            <label for="title">Titlu scurt</label>
+            <input id="title" type="text" name="title" maxlength="200" required>
+
+            <label for="description">Descriere</label>
+            <textarea id="description" name="description" rows="6" required></textarea>
+
+            <label for="address">Adresa sau reper</label>
+            <input id="address" type="text" name="address" required>
+
+            <label for="category_id">Categorie</label>
+            <select id="category_id" name="category_id" required>
+                <option value="">Alege categoria</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}">{{ category.name }} -> {{ category.default_department.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="priority">Prioritate</label>
+            <select id="priority" name="priority" required>
+                {% for value, label in priority_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="hidden" id="latitude" name="latitude">
+            <input type="hidden" id="longitude" name="longitude">
+
+            <p class="map-hint" id="selected-point" aria-live="polite">
+                Alege un punct pe harta pentru a completa coordonatele.
+            </p>
+
+            <button type="submit">Trimite sesizarea</button>
+        </form>
+    </article>
+
+    <section class="panel">
+        <h2>Alege pozitia pe harta</h2>
+        <p class="muted-text">Click pe harta pentru a fixa locul exact al incidentului.</p>
+        <div id="location-picker-map" class="map-block" aria-label="Harta pentru alegerea locatiei"></div>
+    </section>
+</section>
+{% endblock %}

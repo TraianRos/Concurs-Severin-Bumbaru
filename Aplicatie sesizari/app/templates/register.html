@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="single-column">
+    <article class="form-card narrow-card">
+        <p class="eyebrow">Cont nou</p>
+        <h1>Inregistrare cetatean</h1>
+        <p class="muted-text">Conturile noi create din interfata publica primesc automat rolul de cetatean.</p>
+
+        <form method="post" class="form-grid">
+            <label for="full_name">Nume complet</label>
+            <input id="full_name" type="text" name="full_name" autocomplete="name" required>
+
+            <label for="email">Email</label>
+            <input id="email" type="email" name="email" autocomplete="email" required>
+
+            <label for="password">Parola</label>
+            <input id="password" type="password" name="password" autocomplete="new-password" required>
+
+            <label for="confirm_password">Confirma parola</label>
+            <input id="confirm_password" type="password" name="confirm_password" autocomplete="new-password" required>
+
+            <button type="submit">Creeaza cont</button>
+        </form>
+    </article>
+</section>
+{% endblock %}
