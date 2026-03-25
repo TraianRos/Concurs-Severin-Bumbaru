@@ -1,0 +1,193 @@
+:root {
+  --bg: #ece8df;
+  --ink: #151c25;
+  --accent: #b8571f;
+  --surface: rgba(255, 251, 245, 0.86);
+  --muted: #61707a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(184, 87, 31, 0.15), transparent 24%),
+    linear-gradient(180deg, #f2ede5 0%, var(--bg) 100%);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+}
+
+.hero h1 {
+  max-width: 12ch;
+  font-size: clamp(2.4rem, 5vw, 4.6rem);
+  line-height: 0.95;
+  margin: 0;
+}
+
+.hero-copy {
+  max-width: 28ch;
+  color: var(--muted);
+}
+
+.workspace,
+.board-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.workspace {
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 1.5rem;
+}
+
+.board-shell {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.panel,
+.board-column {
+  background: var(--surface);
+  border: 1px solid rgba(21, 28, 37, 0.08);
+  border-radius: 22px;
+  padding: 1.2rem;
+  box-shadow: 0 12px 28px rgba(21, 28, 37, 0.08);
+}
+
+.panel-header {
+  margin-bottom: 1rem;
+}
+
+.panel-header h2 {
+  margin-bottom: 0.2rem;
+}
+
+.panel-header p,
+.simple-list span,
+.task-card span {
+  color: var(--muted);
+}
+
+.simple-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.simple-list li {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.stack-form,
+.task-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+label,
+fieldset {
+  display: grid;
+  gap: 0.4rem;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(21, 28, 37, 0.16);
+  background: white;
+  padding: 0.8rem;
+}
+
+textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.8rem 1.1rem;
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+}
+
+.label-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.checkbox-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.checkbox-row input {
+  width: auto;
+}
+
+.task-card {
+  background: white;
+  border-radius: 18px;
+  padding: 1rem;
+  border: 1px solid rgba(21, 28, 37, 0.08);
+  display: grid;
+  gap: 0.5rem;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ghost-button {
+  background: #293746;
+}
+
+@media (max-width: 860px) {
+  .hero,
+  .workspace {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+}
+
