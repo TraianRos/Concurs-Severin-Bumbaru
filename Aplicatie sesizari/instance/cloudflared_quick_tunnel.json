@@ -1,0 +1,9 @@
+{
+  "last_message": "2026-03-26T03:08:03Z INF Registered tunnel connection connIndex=0 connection=f3c8dea7-7310-4c9d-8a24-1155cc54c269 event=0 ip=198.41.200.53 location=mad05 protocol=quic",
+  "public_url": "https://evaluations-correct-amplifier-inflation.trycloudflare.com",
+  "public_url_discovered_at": "2026-03-26T03:08:03+00:00",
+  "service_status": "ready",
+  "status_server": "http://0.0.0.0:8081",
+  "target_url": "http://127.0.0.1:5000",
+  "updated_at": "2026-03-26T03:08:05+00:00"
+}

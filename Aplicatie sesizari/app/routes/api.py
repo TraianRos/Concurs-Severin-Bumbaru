@@ -4,6 +4,7 @@ from flask_login import current_user, login_required
 from app.repositories import (
     CategoryRepository,
     DepartmentRepository,
+    IncidentPhotoRepository,
     IncidentRepository,
     NotificationRepository,
     UserRepository,
@@ -20,6 +21,7 @@ def build_incident_service() -> IncidentService:
         DepartmentRepository(),
         UserRepository(),
         NotificationRepository(),
+        IncidentPhotoRepository(),
     )
 
 

@@ -15,7 +15,7 @@ class CategoryRepository:
     def find_by_name(self, name: str) -> Category | None:
         return Category.query.filter_by(name=name).first()
 
-    def create(self, name: str, description: str, default_department_id: int) -> Category:
+    def create(self, name: str, description: str, default_department_id: int | None) -> Category:
         category = Category(
             name=name,
             description=description,

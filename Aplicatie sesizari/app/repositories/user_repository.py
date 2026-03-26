@@ -13,13 +13,16 @@ class UserRepository:
         return User.query.order_by(User.full_name.asc()).all()
 
     def list_operators(self) -> list[User]:
-        return User.query.filter(User.role.in_(["operator", "admin"])).order_by(User.full_name.asc()).all()
+        return User.query.filter(User.role.in_(["operator", "dispatcher", "admin"])).order_by(User.full_name.asc()).all()
 
     def staff_for_department(self, department_id: int | None) -> list[User]:
         query = User.query.filter(User.role.in_(["operator", "admin"]))
         if department_id is not None:
             query = query.filter((User.department_id == department_id) | (User.role == "admin"))
         return query.order_by(User.full_name.asc()).all()
+
+    def triage_staff(self) -> list[User]:
+        return User.query.filter(User.role.in_(["dispatcher", "admin"])).order_by(User.full_name.asc()).all()
 
     def create(
         self,

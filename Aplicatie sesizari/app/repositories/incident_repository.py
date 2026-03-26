@@ -4,13 +4,17 @@ from sqlalchemy.orm import joinedload
 from app.extensions import db
 from app.models.entities import Incident, IncidentUpdate
 
+MAP_HIDDEN_STATUSES = ["rezolvata", "respinsa"]
+
 
 class IncidentRepository:
     def _base_query(self):
         return Incident.query.options(
             joinedload(Incident.creator),
             joinedload(Incident.category),
+            joinedload(Incident.suggested_department),
             joinedload(Incident.assigned_department),
+            joinedload(Incident.photos),
             joinedload(Incident.updates).joinedload(IncidentUpdate.author),
         )
 
@@ -47,6 +51,7 @@ class IncidentRepository:
 
     def list_markers(self, filters: dict) -> list[Incident]:
         query = self._apply_filters(self._base_query(), filters)
+        query = query.filter(Incident.status.notin_(MAP_HIDDEN_STATUSES))
         return query.order_by(Incident.created_at.desc()).all()
 
     def find(self, incident_id: int) -> Incident | None:
@@ -64,7 +69,8 @@ class IncidentRepository:
         status: str,
         created_by_id: int,
         category_id: int,
-        assigned_department_id: int,
+        suggested_department_id: int | None,
+        assigned_department_id: int | None,
     ) -> Incident:
         incident = Incident(
             title=title,
@@ -76,6 +82,7 @@ class IncidentRepository:
             status=status,
             created_by_id=created_by_id,
             category_id=category_id,
+            suggested_department_id=suggested_department_id,
             assigned_department_id=assigned_department_id,
         )
         db.session.add(incident)
@@ -107,7 +114,18 @@ class IncidentRepository:
         return update
 
     def counts_by_status(self) -> dict[str, int]:
-        counts = {status: 0 for status in ["noua", "in_verificare", "redirectionata", "in_lucru", "rezolvata", "respinsa"]}
+        counts = {
+            status: 0
+            for status in [
+                "in_triere",
+                "noua",
+                "in_verificare",
+                "redirectionata",
+                "in_lucru",
+                "rezolvata",
+                "respinsa",
+            ]
+        }
         for status, total in db.session.query(Incident.status, db.func.count(Incident.id)).group_by(Incident.status).all():
             counts[status] = total
         return counts
@@ -116,9 +134,19 @@ class IncidentRepository:
         return self._base_query().order_by(Incident.created_at.desc()).limit(limit).all()
 
     def queue_for_operator(self, department_id: int | None) -> list[Incident]:
-        query = self._base_query().filter(Incident.status.notin_(["rezolvata", "respinsa"]))
-        if department_id is not None:
-            query = query.filter(
-                (Incident.assigned_department_id == department_id) | (Incident.status == "noua")
-            )
+        if department_id is None:
+            return []
+
+        query = self._base_query().filter(
+            Incident.status.notin_(["in_triere", "rezolvata", "respinsa"]),
+            Incident.assigned_department_id == department_id,
+        )
         return query.order_by(Incident.updated_at.desc()).all()
+
+    def queue_for_dispatcher(self) -> list[Incident]:
+        return (
+            self._base_query()
+            .filter(Incident.status == "in_triere")
+            .order_by(Incident.updated_at.desc(), Incident.created_at.desc())
+            .all()
+        )

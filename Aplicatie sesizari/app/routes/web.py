@@ -1,12 +1,13 @@
 from functools import wraps
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
-from app.models import INCIDENT_PRIORITY_CHOICES, INCIDENT_STATUS_CHOICES
+from app.models import INCIDENT_PRIORITY_CHOICES
 from app.repositories import (
     CategoryRepository,
     DepartmentRepository,
+    IncidentPhotoRepository,
     IncidentRepository,
     NotificationRepository,
     UserRepository,
@@ -27,6 +28,7 @@ def build_incident_service() -> IncidentService:
         DepartmentRepository(),
         UserRepository(),
         NotificationRepository(),
+        IncidentPhotoRepository(),
     )
 
 
@@ -104,12 +106,13 @@ def incidents():
 
 
 @web_bp.route("/incidents/new", methods=["GET", "POST"])
-@role_required("citizen", "operator", "admin")
+@role_required("citizen", "operator", "dispatcher", "admin")
 def new_incident():
     service = build_incident_service()
+    filter_options = service.filter_options()
 
     if request.method == "POST":
-        result = service.create_incident(request.form, current_user)
+        result = service.create_incident(request.form, request.files, current_user)
         flash(result["message"])
         if result["ok"]:
             return redirect(url_for("web.incident_detail", incident_id=result["incident"].id))
@@ -118,7 +121,9 @@ def new_incident():
         "incident_form.html",
         page_title="Sesizare noua",
         include_leaflet=True,
-        categories=service.filter_options()["categories"],
+        categories=filter_options["categories"],
+        departments=filter_options["departments"],
+        photo_options=service.photo_form_options(),
         priority_choices=INCIDENT_PRIORITY_CHOICES,
     )
 
@@ -127,25 +132,52 @@ def new_incident():
 @login_required
 def incident_detail(incident_id: int):
     service = build_incident_service()
-    incident = service.get_incident(incident_id)
-    if incident is None:
+    context = service.incident_detail_context(incident_id, current_user)
+    if context is None:
         return ("Not found", 404)
 
     return render_template(
         "incident_detail.html",
-        page_title=incident.title,
-        incident=incident,
+        page_title=context["incident"].title,
         include_leaflet=True,
-        departments=service.filter_options()["departments"],
-        status_choices=INCIDENT_STATUS_CHOICES,
+        **context,
+    )
+
+
+@web_bp.get("/incidents/<int:incident_id>/photos/<int:photo_id>")
+@login_required
+def incident_photo(incident_id: int, photo_id: int):
+    service = build_incident_service()
+    photo = service.get_incident_photo(incident_id, photo_id, current_user)
+    if photo is None:
+        abort(404)
+
+    photo_path = service.photo_storage_path(incident_id, photo.stored_name)
+    if not photo_path.is_file():
+        abort(404)
+
+    return send_file(
+        photo_path,
+        mimetype=photo.mime_type,
+        download_name=photo.original_name,
+        conditional=True,
     )
 
 
 @web_bp.post("/incidents/<int:incident_id>/update")
-@role_required("operator", "admin")
+@role_required("operator", "dispatcher", "admin")
 def incident_update(incident_id: int):
     service = build_incident_service()
     result = service.update_incident(incident_id, request.form, current_user)
+    flash(result["message"])
+    return redirect(url_for("web.incident_detail", incident_id=incident_id))
+
+
+@web_bp.post("/incidents/<int:incident_id>/photos/pertinence")
+@role_required("dispatcher", "admin")
+def incident_photo_pertinence(incident_id: int):
+    service = build_incident_service()
+    result = service.update_photo_pertinence(incident_id, request.form, current_user)
     flash(result["message"])
     return redirect(url_for("web.incident_detail", incident_id=incident_id))
 
@@ -158,6 +190,19 @@ def operator_dashboard():
     return render_template(
         "operator_dashboard.html",
         page_title="Dashboard operator",
+        queue=data["queue"],
+        departments=data["departments"],
+    )
+
+
+@web_bp.get("/dashboard/dispatcher")
+@role_required("dispatcher", "admin")
+def dispatcher_dashboard():
+    service = build_incident_service()
+    data = service.dispatcher_dashboard()
+    return render_template(
+        "dispatcher_dashboard.html",
+        page_title="Dashboard triere",
         queue=data["queue"],
         departments=data["departments"],
     )
@@ -197,7 +242,7 @@ def admin_create_category():
 @web_bp.post("/admin/operators")
 @role_required("admin")
 def admin_create_operator():
-    result = build_auth_service().create_operator(request.form)
+    result = build_auth_service().create_staff(request.form)
     flash(result["message"])
     return redirect(url_for("web.admin_dashboard"))
 

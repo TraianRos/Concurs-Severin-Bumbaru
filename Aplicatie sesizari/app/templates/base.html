@@ -28,7 +28,7 @@
     <header class="site-header">
         <div class="brand-block">
             <p class="eyebrow">{{ config.APP_NAME }}</p>
-            <a class="brand-title" href="{{ url_for('web.home') }}">Aplicatie de sesizari pentru localitate</a>
+            <a class="brand-title" href="{{ url_for('web.home') }}">Aplicatie de sesizari pentru orasul Galati</a>
             <p class="brand-copy">Raportare, redirectionare si urmarire clara a incidentelor locale.</p>
         </div>
 
@@ -43,6 +43,9 @@
                 </a>
                 {% if current_user.role in ["operator", "admin"] %}
                     <a href="{{ url_for('web.operator_dashboard') }}">Dashboard operator</a>
+                {% endif %}
+                {% if current_user.role in ["dispatcher", "admin"] %}
+                    <a href="{{ url_for('web.dispatcher_dashboard') }}">Dashboard triere</a>
                 {% endif %}
                 {% if current_user.role == "admin" %}
                     <a href="{{ url_for('web.admin_dashboard') }}">Administrare</a>

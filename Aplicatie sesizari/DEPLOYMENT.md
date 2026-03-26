@@ -50,11 +50,15 @@ Important:
 
 Porneste de la `.env.example`.
 
+```bash
+cp .env.example .env
+```
+
 Minim important:
 
 - `SECRET_KEY`
 - `DATABASE_URL`
-- `APP_HOST=0.0.0.0`
+- `APP_HOST=10.144.0.1`
 - `APP_PORT=5000`
 
 ### 5. Initializare baza de date
@@ -86,45 +90,103 @@ Pentru ceva mai curat decat `python run.py`, foloseste `waitress`.
 ```bash
 cd /opt/aplicatie-sesizari
 source .venv/bin/activate
-waitress-serve --host 0.0.0.0 --port 5000 run:app
+waitress-serve --host 10.144.0.1 --port 5000 --call app:create_app
 ```
 
 ## Pornire automata cu systemd
 
-### 1. Creeaza fisierul
+### 1. Fisierele pregatite in proiect
+
+- `deploy/aplicatie-sesizari.service`
+- `.env.example`
+
+Serviciul din proiect este pregatit pentru aceasta masina:
+
+- utilizator `musca`
+- proiect in `/home/musca/Documents/Aplicatie sesizari`
+- bind pe `10.144.0.1:5000`
+
+### 2. Creeaza fisierul `.env`
 
 ```bash
-sudo nano /etc/systemd/system/aplicatie-sesizari.service
+cd "/home/musca/Documents/Aplicatie sesizari"
+cp .env.example .env
 ```
 
-### 2. Continut exemplu
+Editeaza `.env` si seteaza macar:
 
-```ini
-[Unit]
-Description=Aplicatie sesizari
-After=network.target
+- `SECRET_KEY`
+- `DATABASE_URL`
 
-[Service]
-User=pi
-WorkingDirectory=/opt/aplicatie-sesizari
-Environment=SECRET_KEY=schimba-aici-cheia
-Environment=DATABASE_URL=sqlite:///aplicatie_sesizari.db
-Environment=APP_HOST=0.0.0.0
-Environment=APP_PORT=5000
-ExecStart=/opt/aplicatie-sesizari/.venv/bin/waitress-serve --host 0.0.0.0 --port 5000 run:app
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### 3. Activeaza serviciul
+### 3. Instaleaza serviciul
 
 ```bash
+sudo cp "/home/musca/Documents/Aplicatie_sesizari/deploy/aplicatie-sesizari.service" /etc/systemd/system/aplicatie-sesizari.service
 sudo systemctl daemon-reload
 sudo systemctl enable aplicatie-sesizari
 sudo systemctl start aplicatie-sesizari
+```
+
+### 4. Verifica serviciul
+
+```bash
 sudo systemctl status aplicatie-sesizari
+sudo systemctl is-active aplicatie-sesizari
+curl -I http://10.144.0.1:5000
+```
+
+### 5. Vezi logurile
+
+```bash
+journalctl -u aplicatie-sesizari -n 50 --no-pager
+```
+
+## Quick Tunnel automat cu pagina locala de status
+
+Aceasta varianta porneste automat `cloudflared`, detecteaza URL-ul public `*.trycloudflare.com`, il salveaza in fisier si afiseaza o pagina simpla de status pe un port separat din reteaua locala.
+
+### Fisiere pregatite in proiect
+
+- `deploy/cloudflared-quick-tunnel.service`
+- `app/cloudflared_status.py`
+
+### Variabile noi in `.env`
+
+```env
+CLOUDFLARED_BIN=/usr/bin/cloudflared
+CLOUDFLARED_TARGET_URL=http://127.0.0.1:5000
+CLOUDFLARED_STATUS_HOST=0.0.0.0
+CLOUDFLARED_STATUS_PORT=8081
+CLOUDFLARED_STATUS_FILE=instance/cloudflared_quick_tunnel.json
+```
+
+### Instalare serviciu
+
+```bash
+sudo cp "/home/musca/Documents/Aplicatie_sesizari/deploy/cloudflared-quick-tunnel.service" /etc/systemd/system/cloudflared-quick-tunnel.service
+sudo systemctl daemon-reload
+sudo systemctl enable cloudflared-quick-tunnel
+sudo systemctl start cloudflared-quick-tunnel
+```
+
+### Verificare
+
+```bash
+sudo systemctl status cloudflared-quick-tunnel --no-pager
+journalctl -u cloudflared-quick-tunnel -n 50 --no-pager
+curl http://127.0.0.1:8081/status.json
+```
+
+Pagina HTML de status va fi disponibila la:
+
+```text
+http://<IP-ul-local-al-serverului>:8081
+```
+
+JSON-ul cu ultima stare detectata va fi salvat implicit in:
+
+```text
+instance/cloudflared_quick_tunnel.json
 ```
 
 ## Backup minim

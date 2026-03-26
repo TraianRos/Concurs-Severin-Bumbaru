@@ -33,14 +33,6 @@
 </section>
 
 <section class="stat-grid" aria-label="Rezumat platforma">
-    <article class="stat-card">
-        <p class="stat-value">{{ department_count }}</p>
-        <p class="stat-label">departamente pregatite</p>
-    </article>
-    <article class="stat-card">
-        <p class="stat-value">{{ category_count }}</p>
-        <p class="stat-label">categorii de sesizari</p>
-    </article>
     {% for key, total in status_counts.items() %}
         <article class="stat-card">
             <p class="stat-value">{{ total }}</p>
@@ -65,7 +57,7 @@
             </div>
             <h3>{{ incident.title }}</h3>
             <p>{{ incident.address }}</p>
-            <p class="muted-text">{{ incident.category.name }} -> {{ incident.assigned_department.name }}</p>
+            <p class="muted-text">{{ incident.category.name }} -> {{ incident.display_department_label }}</p>
             {% if current_user.is_authenticated %}
                 <a class="text-link" href="{{ url_for('web.incident_detail', incident_id=incident.id) }}">Deschide detaliul</a>
             {% endif %}

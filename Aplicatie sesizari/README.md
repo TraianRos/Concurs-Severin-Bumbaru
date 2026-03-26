@@ -78,7 +78,7 @@ Acestea sunt deja declarate in `requirements.txt`:
 - `SQLite` elimina un server separat de baza de date in prima etapa.
 - `Jinja` permite sa vedeti direct legatura intre datele din Python si HTML-ul din browser.
 - `Leaflet` adauga harta fara build complex.
-- `Vanilla JS` este suficient pentru ce cerintele minime au nevoie.
+- `Vanilla JS` pentru procesare pe frontend.
 
 ## Cum interactioneaza tehnologiile
 

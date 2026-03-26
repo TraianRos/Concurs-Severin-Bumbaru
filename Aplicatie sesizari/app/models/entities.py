@@ -8,6 +8,7 @@ from app.extensions import db
 ROLE_CHOICES = [
     ("citizen", "Cetatean"),
     ("operator", "Operator"),
+    ("dispatcher", "Dispecer"),
     ("admin", "Administrator"),
 ]
 ROLE_LABELS = dict(ROLE_CHOICES)
@@ -21,6 +22,7 @@ INCIDENT_PRIORITY_CHOICES = [
 PRIORITY_LABELS = dict(INCIDENT_PRIORITY_CHOICES)
 
 INCIDENT_STATUS_CHOICES = [
+    ("in_triere", "In triere"),
     ("noua", "Noua"),
     ("in_verificare", "In verificare"),
     ("redirectionata", "Redirectionata"),
@@ -46,7 +48,16 @@ class Department(db.Model):
 
     categories = db.relationship("Category", back_populates="default_department")
     users = db.relationship("User", back_populates="department")
-    incidents = db.relationship("Incident", back_populates="assigned_department")
+    incidents = db.relationship(
+        "Incident",
+        back_populates="assigned_department",
+        foreign_keys="Incident.assigned_department_id",
+    )
+    suggested_incidents = db.relationship(
+        "Incident",
+        back_populates="suggested_department",
+        foreign_keys="Incident.suggested_department_id",
+    )
 
 
 class User(UserMixin, db.Model):
@@ -82,7 +93,7 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False, unique=True)
     description = db.Column(db.Text, nullable=False)
-    default_department_id = db.Column(db.Integer, db.ForeignKey("departments.id"), nullable=False)
+    default_department_id = db.Column(db.Integer, db.ForeignKey("departments.id"))
     created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
 
     default_department = db.relationship("Department", back_populates="categories")
@@ -102,13 +113,29 @@ class Incident(db.Model):
     status = db.Column(db.String(32), nullable=False, default="noua")
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey("incident_categories.id"), nullable=False)
-    assigned_department_id = db.Column(db.Integer, db.ForeignKey("departments.id"), nullable=False)
+    suggested_department_id = db.Column(db.Integer, db.ForeignKey("departments.id"))
+    assigned_department_id = db.Column(db.Integer, db.ForeignKey("departments.id"))
     created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
     updated_at = db.Column(db.DateTime, default=utc_now, nullable=False, onupdate=utc_now)
 
     creator = db.relationship("User", back_populates="incidents", foreign_keys=[created_by_id])
     category = db.relationship("Category", back_populates="incidents")
-    assigned_department = db.relationship("Department", back_populates="incidents")
+    suggested_department = db.relationship(
+        "Department",
+        back_populates="suggested_incidents",
+        foreign_keys=[suggested_department_id],
+    )
+    assigned_department = db.relationship(
+        "Department",
+        back_populates="incidents",
+        foreign_keys=[assigned_department_id],
+    )
+    photos = db.relationship(
+        "IncidentPhoto",
+        back_populates="incident",
+        cascade="all, delete-orphan",
+        order_by="IncidentPhoto.created_at.asc()",
+    )
     updates = db.relationship(
         "IncidentUpdate",
         back_populates="incident",
@@ -124,6 +151,35 @@ class Incident(db.Model):
     @property
     def status_label(self) -> str:
         return STATUS_LABELS.get(self.status, self.status)
+
+    @property
+    def display_department_label(self) -> str:
+        if self.status == "in_triere":
+            if self.suggested_department is not None:
+                return f"Sugerat: {self.suggested_department.name}"
+            return "In asteptarea trierii"
+
+        if self.assigned_department is not None:
+            return self.assigned_department.name
+
+        return "-"
+
+
+class IncidentPhoto(db.Model):
+    __tablename__ = "incident_photos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    incident_id = db.Column(db.Integer, db.ForeignKey("incidents.id"), nullable=False)
+    stored_name = db.Column(db.String(255), nullable=False, unique=True)
+    original_name = db.Column(db.String(255), nullable=False)
+    mime_type = db.Column(db.String(64), nullable=False, default="image/jpeg")
+    size_bytes = db.Column(db.Integer, nullable=False)
+    width = db.Column(db.Integer, nullable=False)
+    height = db.Column(db.Integer, nullable=False)
+    is_pertinent = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, default=utc_now, nullable=False)
+
+    incident = db.relationship("Incident", back_populates="photos")
 
 
 class IncidentUpdate(db.Model):

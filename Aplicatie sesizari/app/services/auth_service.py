@@ -37,30 +37,42 @@ class AuthService:
         return {"ok": True, "message": "Autentificare reusita.", "user": user}
 
     def create_operator(self, payload: dict) -> dict:
+        return self.create_staff(payload)
+
+    def create_staff(self, payload: dict) -> dict:
         full_name = payload.get("full_name", "").strip()
         email = payload.get("email", "").strip().lower()
         password = payload.get("password", "")
+        role = payload.get("role", "operator").strip()
         department_id = payload.get("department_id", "").strip()
 
-        if not full_name or not email or not password or not department_id:
-            return {"ok": False, "message": "Completeaza toate campurile pentru operator."}
+        if not full_name or not email or not password:
+            return {"ok": False, "message": "Completeaza toate campurile pentru utilizatorul intern."}
         if "@" not in email:
-            return {"ok": False, "message": "Emailul operatorului nu este valid."}
+            return {"ok": False, "message": "Emailul utilizatorului nu este valid."}
         if self.user_repository.find_by_email(email):
             return {"ok": False, "message": "Exista deja un utilizator cu acest email."}
-        if not department_id.isdigit():
-            return {"ok": False, "message": "Departamentul selectat nu este valid."}
+        if role not in ["operator", "dispatcher"]:
+            return {"ok": False, "message": "Rolul selectat nu este valid."}
 
-        department = self.department_repository.find(int(department_id))
-        if department is None:
-            return {"ok": False, "message": "Departamentul nu exista."}
+        resolved_department_id = None
+        if role == "operator":
+            if not department_id.isdigit():
+                return {"ok": False, "message": "Departamentul selectat nu este valid."}
+
+            department = self.department_repository.find(int(department_id))
+            if department is None:
+                return {"ok": False, "message": "Departamentul nu exista."}
+            resolved_department_id = department.id
 
         self.user_repository.create(
             full_name=full_name,
             email=email,
             password=password,
-            role="operator",
-            department_id=department.id,
+            role=role,
+            department_id=resolved_department_id,
         )
         db.session.commit()
+        if role == "dispatcher":
+            return {"ok": True, "message": "Dispecerul a fost creat."}
         return {"ok": True, "message": "Operatorul a fost creat."}
