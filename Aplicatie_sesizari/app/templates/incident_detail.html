@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <p class="eyebrow">Detalii sesizare</p>
+        <h1>{{ incident.title }}</h1>
+    </div>
+    <div class="card-tags">
+        <span class="pill pill-{{ incident.status }}">{{ incident.status_label }}</span>
+        <span class="pill pill-neutral">{{ incident.priority_label }}</span>
+    </div>
+</section>
+
+<section class="layout-two-columns">
+    <div class="content-stack">
+        <article class="panel">
+            <h2>Informații principale</h2>
+            <dl class="detail-grid">
+                <div>
+                    <dt>Categorie</dt>
+                    <dd>{{ incident.category.name }}</dd>
+                </div>
+                <div>
+                    <dt>Departament curent</dt>
+                    <dd>{{ incident.display_department_label }}</dd>
+                </div>
+                {% if incident.suggested_department %}
+                    <div>
+                        <dt>Departament sugerat</dt>
+                        <dd>{{ incident.suggested_department.name }}</dd>
+                    </div>
+                {% endif %}
+                <div>
+                    <dt>Adresa</dt>
+                    <dd>{{ incident.address }}</dd>
+                </div>
+                <div>
+                    <dt>Autor</dt>
+                    <dd>
+                        {% if can_view_reporter_identity %}
+                            {{ incident.creator.full_name }}
+                        {% else %}
+                            {{ user_display_name(incident.creator) }}
+                        {% endif %}
+                    </dd>
+                </div>
+                {% if can_view_reporter_identity %}
+                    <div>
+                        <dt>Email contact</dt>
+                        <dd>{{ incident.creator.email }}</dd>
+                    </div>
+                {% endif %}
+                <div>
+                    <dt>Creat la</dt>
+                    <dd>{{ incident.created_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+                </div>
+                <div>
+                    <dt>Actualizat la</dt>
+                    <dd>{{ incident.updated_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+                </div>
+            </dl>
+            <p>{{ incident.description }}</p>
+        </article>
+
+        <article class="panel">
+            <h2>{% if can_view_internal %}Istoric intern{% else %}Istoric vizibil{% endif %}</h2>
+            <div class="timeline">
+                {% for entry in timeline_entries %}
+                    <article class="timeline-item">
+                        <p class="timeline-meta">
+                            {{ entry.author_name }} · {{ entry.created_at.strftime("%d.%m.%Y %H:%M") }}
+                        </p>
+                        <p>{{ entry.message }}</p>
+                        {% if entry.status_to %}
+                            <p class="muted-text">
+                                Status:
+                                {{ entry.status_from or "fără status anterior" }}
+                                ->
+                                {{ entry.status_to }}
+                            </p>
+                        {% endif %}
+                        {% if entry.department_to %}
+                            <p class="muted-text">
+                                Departament:
+                                {{ entry.department_from or "fără departament anterior" }}
+                                ->
+                                {{ entry.department_to }}
+                            </p>
+                        {% endif %}
+                    </article>
+                {% else %}
+                    <p>Nu există actualizări încă.</p>
+                {% endfor %}
+            </div>
+        </article>
+
+        {% if visible_photos %}
+            <article class="panel">
+                <h2>Fotografii atașate</h2>
+                <div class="incident-photo-gallery">
+                    {% for photo in visible_photos %}
+                        <a
+                            class="incident-photo-card"
+                            href="{{ url_for('web.incident_photo', incident_id=incident.id, photo_id=photo.id) }}"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            <img
+                                src="{{ url_for('web.incident_photo', incident_id=incident.id, photo_id=photo.id) }}"
+                                alt="Fotografie atașată pentru sesizarea {{ incident.title }}"
+                                loading="lazy"
+                            >
+                            <span>{{ photo.original_name }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endif %}
+    </div>
+
+    <div class="content-stack">
+        <section class="panel">
+            <h2>Locație</h2>
+            <div
+                id="incident-detail-map"
+                class="map-block compact-map"
+                data-lat="{{ incident.latitude }}"
+                data-lng="{{ incident.longitude }}"
+                data-title="{{ incident.title }}"
+                aria-label="Harta poziției sesizării"
+            ></div>
+        </section>
+
+        {% if can_update_status %}
+            <section class="form-card">
+                <h2>Actualizare operațională</h2>
+                <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid">
+                    <input type="hidden" name="action" value="set_status">
+
+                    <label for="status">Status nou</label>
+                    <select id="status" name="status" required>
+                        {% for value, label in operator_status_choices %}
+                            <option value="{{ value }}" {% if incident.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="status-message">Mesaj pentru istoric</label>
+                    <textarea
+                        id="status-message"
+                        name="message"
+                        rows="4"
+                        placeholder="Exemplu: echipa ajunge în teren mâine dimineață."
+                    ></textarea>
+
+                    <button type="submit">Salvează statusul</button>
+                </form>
+            </section>
+        {% endif %}
+
+        {% if can_mark_irrelevant %}
+            <section class="form-card">
+                <h2>Nu ține de departamentul meu</h2>
+                <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid">
+                    <input type="hidden" name="action" value="mark_irrelevant">
+
+                    <label for="irrelevant-message">Motivație obligatorie</label>
+                    <textarea
+                        id="irrelevant-message"
+                        name="message"
+                        rows="4"
+                        required
+                        placeholder="Explică de ce sesizarea trebuie întoarsă la triere."
+                    ></textarea>
+
+                    <button type="submit">Retrimite la triere</button>
+                </form>
+            </section>
+        {% endif %}
+
+        {% if can_dispatch_incident %}
+            <section class="form-card">
+                <h2>Triere și distribuire</h2>
+                <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid">
+                    <input type="hidden" name="action" value="assign_department">
+
+                    <label for="assigned_department_id">Departament țintă</label>
+                    <select id="assigned_department_id" name="assigned_department_id" required>
+                        {% for department in departments %}
+                            <option
+                                value="{{ department.id }}"
+                                {% if (
+                                    incident.status == 'in_triere' and incident.suggested_department_id == department.id
+                                ) or (
+                                    incident.status != 'in_triere' and incident.assigned_department_id == department.id
+                                ) %}selected{% endif %}
+                            >
+                                {{ department.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="dispatch-message">Motivație obligatorie</label>
+                    <textarea
+                        id="dispatch-message"
+                        name="message"
+                        rows="4"
+                        required
+                        placeholder="Explică de ce alegi sau schimbi departamentul."
+                    ></textarea>
+
+                    <button type="submit">Trimite către departament</button>
+                </form>
+            </section>
+
+            {% if incident.suggested_department %}
+                <section class="form-card">
+                    <h2>Respinge sugestia cetățeanului</h2>
+                    <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid">
+                        <input type="hidden" name="action" value="reject_suggestion">
+
+                        <label for="reject-suggestion-message">Motivație obligatorie</label>
+                        <textarea
+                            id="reject-suggestion-message"
+                            name="message"
+                            rows="4"
+                            required
+                            placeholder="Explică de ce sugestia inițială nu este potrivită."
+                        ></textarea>
+
+                        <button type="submit">Respinge sugestia</button>
+                    </form>
+                </section>
+            {% endif %}
+
+            <section class="form-card">
+                <h2>Respinge definitiv sesizarea</h2>
+                <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid">
+                    <input type="hidden" name="action" value="reject_incident">
+
+                    <label for="reject-incident-message">Motivație obligatorie</label>
+                    <textarea
+                        id="reject-incident-message"
+                        name="message"
+                        rows="4"
+                        required
+                        placeholder="Explică de ce sesizarea este respinsă definitiv."
+                    ></textarea>
+
+                    <button type="submit">Respinge sesizarea</button>
+                </form>
+            </section>
+        {% endif %}
+
+        {% if can_manage_photo_pertinence %}
+            <section class="form-card">
+                <h2>Fotografii pertinente pentru departament</h2>
+                <form method="post" action="{{ url_for('web.incident_photo_pertinence', incident_id=incident.id) }}" class="form-grid">
+                    {% for photo in incident.photos %}
+                        <label class="checkbox-row" for="photo-{{ photo.id }}">
+                            <input
+                                id="photo-{{ photo.id }}"
+                                type="checkbox"
+                                name="pertinent_photo_ids"
+                                value="{{ photo.id }}"
+                                {% if photo.is_pertinent %}checked{% endif %}
+                            >
+                            {{ photo.original_name }}
+                        </label>
+                    {% endfor %}
+
+                    <label for="photo-message">Motivație obligatorie</label>
+                    <textarea
+                        id="photo-message"
+                        name="message"
+                        rows="4"
+                        required
+                        placeholder="Explică de ce anumite fotografii sunt sau nu sunt utile departamentului."
+                    ></textarea>
+
+                    <button type="submit">Actualizează pertinența fotografiilor</button>
+                </form>
+            </section>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

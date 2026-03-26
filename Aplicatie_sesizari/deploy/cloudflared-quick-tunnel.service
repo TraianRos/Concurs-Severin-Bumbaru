@@ -1,0 +1,19 @@
+[Unit]
+Description=Cloudflare Quick Tunnel status service for Aplicatie sesizari
+After=network-online.target aplicatie-sesizari.service
+Wants=network-online.target
+Requires=aplicatie-sesizari.service
+
+[Service]
+Type=simple
+User=musca
+Group=musca
+WorkingDirectory=/home/musca/Documents/Aplicatie_sesizari
+EnvironmentFile=/home/musca/Documents/Aplicatie_sesizari/.env
+Environment="PYTHONPATH=/home/musca/Documents/Aplicatie_sesizari"
+ExecStart="/home/musca/Documents/Aplicatie_sesizari/.venv/bin/python" -m app.cloudflared_status
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

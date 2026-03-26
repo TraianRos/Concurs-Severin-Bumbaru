@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <p class="eyebrow">Actualizări personale</p>
+        <h1>Notificări</h1>
+    </div>
+    <form method="post" action="{{ url_for('web.mark_notifications_read') }}">
+        <button type="submit">Marchează tot ca citit</button>
+    </form>
+</section>
+
+<section class="single-column">
+    {% for notification in notifications %}
+        <article class="card {% if not notification.is_read %}card-highlight{% endif %}">
+            <div class="card-tags">
+                <span class="pill {% if notification.is_read %}pill-neutral{% else %}pill-in_verificare{% endif %}">
+                    {% if notification.is_read %}citită{% else %}nouă{% endif %}
+                </span>
+            </div>
+            <h2>{{ notification.message }}</h2>
+            <p class="muted-text">{{ notification.created_at.strftime("%d.%m.%Y %H:%M") }}</p>
+            <a class="text-link" href="{{ url_for('web.incident_detail', incident_id=notification.incident_id) }}">Deschide sesizarea</a>
+        </article>
+    {% else %}
+        <article class="card">
+            <h2>Nu există notificări</h2>
+            <p>Contorul din meniu se va actualiza automat când apar notificări noi.</p>
+        </article>
+    {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <p class="eyebrow">Zona de triere</p>
+        <h1>Dashboard dispecer</h1>
+    </div>
+</section>
+
+<section class="panel">
+    <p class="muted-text">
+        Aici apar sesizările noi, cazurile cu departament sugerat de cetățean și sesizările retrimise din departamente.
+    </p>
+</section>
+
+<section class="card-grid">
+    {% for incident in queue %}
+        <article class="card">
+            <div class="card-tags">
+                <span class="pill pill-{{ incident.status }}">{{ incident.status_label }}</span>
+                <span class="pill pill-neutral">{{ incident.priority_label }}</span>
+            </div>
+            <h2>{{ incident.title }}</h2>
+            <p>{{ incident.address }}</p>
+            <p class="muted-text">{{ incident.category.name }} -> {{ incident.display_department_label }}</p>
+            <a class="text-link" href="{{ url_for('web.incident_detail', incident_id=incident.id) }}">Deschide și triază</a>
+        </article>
+    {% else %}
+        <article class="card">
+            <h2>Nu există sesizări în triere</h2>
+            <p>Toate cazurile au fost deja distribuite sau închise.</p>
+        </article>
+    {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,9 @@
+{
+  "last_message": "Serviciul a fost oprit.",
+  "public_url": "https://forums-beverages-embassy-voip.trycloudflare.com",
+  "public_url_discovered_at": "2026-03-26T15:24:35+00:00",
+  "service_status": "stopped",
+  "status_server": "http://0.0.0.0:8081",
+  "target_url": "http://127.0.0.1:5000",
+  "updated_at": "2026-03-26T15:25:28+00:00"
+}
