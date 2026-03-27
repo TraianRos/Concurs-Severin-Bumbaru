@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="single-column">
+    <article class="form-card narrow-card">
+        <p class="eyebrow">Cont nou</p>
+        <h1>Înregistrare cetățean</h1>
+        <p class="muted-text">Conturile noi create din interfața publică primesc automat rolul de cetățean.</p>
+
+        <form method="post" class="form-grid" data-accessible-form novalidate>
+            <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+            <label for="full_name">Nume complet</label>
+            <input id="full_name" type="text" name="full_name" autocomplete="name" maxlength="{{ form_limits.full_name }}" required>
+
+            <label for="email">Email</label>
+            <input id="email" type="email" name="email" autocomplete="email" maxlength="{{ form_limits.email }}" required>
+
+            <label for="password">Parola</label>
+            <input id="password" type="password" name="password" autocomplete="new-password" maxlength="{{ form_limits.password }}" required>
+
+            <label for="confirm_password">Confirmă parola</label>
+            <input
+                id="confirm_password"
+                type="password"
+                name="confirm_password"
+                autocomplete="new-password"
+                maxlength="{{ form_limits.password }}"
+                required
+            >
+
+            <button type="submit">Creează cont</button>
+        </form>
+    </article>
+</section>
+{% endblock %}

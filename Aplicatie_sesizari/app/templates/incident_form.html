@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <p class="eyebrow">Raportare nouă</p>
+        <h1>Trimite o sesizare</h1>
+    </div>
+</section>
+
+<form
+    method="post"
+    enctype="multipart/form-data"
+    class="incident-report-layout"
+    data-accessible-form
+    data-photo-upload-form
+    data-location-form
+    data-incident-wizard
+    data-wizard-step="1"
+    data-photo-max-files="{{ photo_options.max_files }}"
+    data-photo-max-size-bytes="{{ photo_options.max_size_bytes }}"
+    data-photo-processing-ready="{{ photo_options.processing_status_ready }}"
+    novalidate
+>
+    <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+
+    <ol class="incident-wizard-progress" aria-label="Pașii trimiterii sesizării">
+        <li class="incident-wizard-progress-item" data-wizard-progress-step="1" aria-current="step">
+            <span class="incident-wizard-progress-index">1</span>
+            <span>Locație</span>
+        </li>
+        <li class="incident-wizard-progress-item" data-wizard-progress-step="2">
+            <span class="incident-wizard-progress-index">2</span>
+            <span>Detalii</span>
+        </li>
+    </ol>
+
+    <section
+        class="panel incident-step-panel incident-step-panel-location"
+        data-wizard-step-panel="1"
+        aria-labelledby="incident-location-step-title"
+    >
+        <div class="incident-step-heading">
+            <h2 id="incident-location-step-title" data-wizard-step-heading>Stabilește locația</h2>
+        </div>
+        <input id="latitude" type="hidden" name="latitude">
+        <input id="longitude" type="hidden" name="longitude">
+
+        <div class="location-map-shell" data-location-map-wrapper>
+            <div
+                id="location-picker-map"
+                class="map-block"
+                aria-label="Harta pentru alegerea locației"
+            ></div>
+        </div>
+        <div class="visually-hidden" id="selected-point" role="status" aria-live="polite">
+            Încercăm să preluăm locația dispozitivului pentru a completa poziția sesizării.
+        </div>
+
+        <div class="button-row incident-wizard-actions mobile-only-action-row">
+            <button type="button" data-wizard-next disabled>Continuă</button>
+        </div>
+    </section>
+
+    <article
+        class="form-card incident-step-panel incident-step-panel-details form-grid"
+        data-wizard-step-panel="2"
+        aria-labelledby="incident-details-step-title"
+    >
+        <div class="incident-step-heading">
+            <h2 id="incident-details-step-title" data-wizard-step-heading>Completează detaliile</h2>
+        </div>
+
+        <label for="title">Titlu scurt</label>
+        <input id="title" type="text" name="title" maxlength="{{ form_limits.incident_title }}" required>
+
+        <label for="description">Descriere</label>
+        <textarea id="description" name="description" rows="6" maxlength="{{ form_limits.incident_description }}" required></textarea>
+
+        <label for="address">Adresa sau reper</label>
+        <input
+            id="address"
+            type="text"
+            name="address"
+            autocomplete="street-address"
+            maxlength="{{ form_limits.incident_address }}"
+            required
+        >
+
+        <label for="category_id">Categorie</label>
+        <select id="category_id" name="category_id" required>
+            <option value="">Alege categoria</option>
+            {% for category in categories %}
+                <option
+                    value="{{ category.id }}"
+                    data-default-department-id="{{ category.default_department_id or '' }}"
+                    data-default-department-name="{{ category.default_department.name if category.default_department else '' }}"
+                >
+                    {{ category.name }}
+                    {% if category.default_department %}
+                        -> {{ category.default_department.name }}
+                    {% else %}
+                        -> fără departament implicit
+                    {% endif %}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="suggested_department_id">Departament sugerat</label>
+        <select
+            id="suggested_department_id"
+            name="suggested_department_id"
+            data-suggested-department-select
+            aria-describedby="department-suggestion-hint"
+        >
+            <option value="">Nu știu</option>
+            {% for department in departments %}
+                <option value="{{ department.id }}">{{ department.name }}</option>
+            {% endfor %}
+        </select>
+        <p class="inline-hint" id="department-suggestion-hint" data-department-suggestion-hint>
+            Alege departamentul pe care îl consideri potrivit sau lasă "Nu știu" dacă nu ești sigur.
+        </p>
+
+        <label for="priority">Prioritate</label>
+        <select id="priority" name="priority" required>
+            {% for value, label in priority_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="photos">Fotografiile locului</label>
+        <input
+            id="photos"
+            type="file"
+            accept="{{ photo_options.accept }}"
+            multiple
+            class="visually-hidden"
+            data-photo-picker-input
+            tabindex="-1"
+            aria-hidden="true"
+        >
+        <input
+            id="prepared-photos"
+            type="file"
+            name="photos"
+            multiple
+            class="visually-hidden"
+            data-photo-input
+            tabindex="-1"
+            aria-hidden="true"
+        >
+        <input type="hidden" name="photo_processing_status" value="no-files" data-photo-processing-status>
+        <div class="button-row">
+            <button
+                type="button"
+                class="ghost-button"
+                data-add-photos-button
+                aria-describedby="photo-upload-hint photo-upload-status photo-upload-errors"
+            >
+                Adaugă fotografii
+            </button>
+        </div>
+        <p class="inline-hint" id="photo-upload-hint">
+            Poți adăuga maximum {{ photo_options.max_files }} fotografii. Fiecare va fi convertită la JPEG și
+            comprimată în browser până la maximum 5 MB.
+        </p>
+        <div class="photo-upload-status" id="photo-upload-status" data-photo-upload-status role="status" aria-live="polite"></div>
+        <div class="photo-upload-errors" id="photo-upload-errors" data-photo-upload-errors role="alert" tabindex="-1"></div>
+        <div class="photo-preview-grid" data-photo-preview-grid role="list" aria-label="Preview pentru fotografiile procesate"></div>
+
+        <div class="button-row incident-submit-actions">
+            <button type="button" class="ghost-button mobile-only-action" data-wizard-back>Înapoi</button>
+            <button type="submit">Trimite sesizarea</button>
+        </div>
+    </article>
+</form>
+{% endblock %}
