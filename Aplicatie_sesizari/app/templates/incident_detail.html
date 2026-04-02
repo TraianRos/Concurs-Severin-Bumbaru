@@ -1,0 +1,538 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <p class="eyebrow">Detalii sesizare</p>
+        <h1>{{ incident.title }}</h1>
+    </div>
+    <div class="card-tags" aria-label="Rezumat status și prioritate">
+        <span class="pill pill-{{ incident.status }}">{{ incident.status_label }}</span>
+        <span class="pill pill-neutral">{{ incident.priority_label }}</span>
+        {% if incident.is_hidden %}
+            <span class="pill pill-neutral">{{ visibility_state_label }}</span>
+        {% endif %}
+        <span class="pill pill-neutral">{{ vote_count }} {% if vote_count == 1 %}susținere{% else %}susțineri{% endif %}</span>
+    </div>
+</section>
+
+<section class="layout-two-columns">
+    <div class="content-stack">
+        {% if incident.is_hidden %}
+            <article class="panel">
+                <h2>Vizibilitate moderată</h2>
+                <p class="muted-text">
+                    Această sesizare este momentan ascunsă pentru cetățeni și operatori.
+                    Stare curentă: {{ visibility_state_label }}.
+                </p>
+            </article>
+        {% endif %}
+
+        <article class="panel">
+            <h2>Informații principale</h2>
+            <dl class="detail-grid">
+                <div>
+                    <dt>Categorie</dt>
+                    <dd>{{ incident.category.name }}</dd>
+                </div>
+                <div>
+                    <dt>Departament curent</dt>
+                    <dd>{{ incident.display_department_label }}</dd>
+                </div>
+                {% if incident.suggested_department %}
+                    <div>
+                        <dt>Departament sugerat</dt>
+                        <dd>{{ incident.suggested_department.name }}</dd>
+                    </div>
+                {% endif %}
+                <div>
+                    <dt>Adresa</dt>
+                    <dd>{{ incident.address }}</dd>
+                </div>
+                <div>
+                    <dt>Autor</dt>
+                    <dd>
+                        {% if can_view_reporter_identity %}
+                            {{ incident.creator.full_name }}
+                        {% else %}
+                            {{ user_display_name(incident.creator) }}
+                        {% endif %}
+                    </dd>
+                </div>
+                {% if can_view_reporter_identity %}
+                    <div>
+                        <dt>Email contact</dt>
+                        <dd>{{ incident.creator.email }}</dd>
+                    </div>
+                {% endif %}
+                <div>
+                    <dt>Creat la</dt>
+                    <dd>{{ incident.created_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+                </div>
+                <div>
+                    <dt>Actualizat la</dt>
+                    <dd>{{ incident.updated_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+                </div>
+            </dl>
+            <p>{{ incident.description }}</p>
+        </article>
+
+        <article class="panel">
+            <h2>{% if can_view_internal %}Istoric intern{% else %}Istoric vizibil{% endif %}</h2>
+            <ol class="timeline" aria-label="{% if can_view_internal %}Istoric intern al sesizării{% else %}Istoric public al sesizării{% endif %}">
+                {% for entry in timeline_entries %}
+                    <li class="timeline-item">
+                        <p class="timeline-meta">
+                            {{ entry.author_name }} · {{ entry.created_at.strftime("%d.%m.%Y %H:%M") }}
+                        </p>
+                        <p>{{ entry.message }}</p>
+                        {% if entry.status_to %}
+                            <p class="muted-text">
+                                Status:
+                                {{ entry.status_from or "fără status anterior" }}
+                                ->
+                                {{ entry.status_to }}
+                            </p>
+                        {% endif %}
+                        {% if entry.department_to %}
+                            <p class="muted-text">
+                                Departament:
+                                {{ entry.department_from or "fără departament anterior" }}
+                                ->
+                                {{ entry.department_to }}
+                            </p>
+                        {% endif %}
+                    </li>
+                {% else %}
+                    <li class="timeline-item">Nu există actualizări încă.</li>
+                {% endfor %}
+            </ol>
+        </article>
+
+        {% if visible_photos %}
+            <article class="panel">
+                <h2>Fotografii atașate</h2>
+                <div class="incident-photo-gallery" role="list" aria-label="Fotografii atașate sesizării">
+                    {% for photo in visible_photos %}
+                        <a
+                            class="incident-photo-card"
+                            href="{{ url_for('web.incident_photo', incident_id=incident.id, photo_id=photo.id) }}"
+                            target="_blank"
+                            rel="noopener"
+                            role="listitem"
+                            aria-label="Deschide fotografia {{ photo.original_name }} într-o filă nouă"
+                        >
+                            <img
+                                src="{{ url_for('web.incident_photo', incident_id=incident.id, photo_id=photo.id) }}"
+                                alt="Fotografie atașată pentru sesizarea {{ incident.title }}"
+                                loading="lazy"
+                            >
+                            <span>{{ photo.original_name }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endif %}
+
+        {% if can_moderate_reports and open_reports %}
+            <article class="panel">
+                <h2>Rapoarte deschise pentru moderare</h2>
+                <div class="report-moderation-list" role="list" aria-label="Rapoarte deschise pentru această sesizare">
+                    {% for report in open_reports %}
+                        <article class="report-card" role="listitem">
+                            <p class="timeline-meta">
+                                {{ report.reporter.full_name }} · {{ report.created_at.strftime("%d.%m.%Y %H:%M") }}
+                            </p>
+                            <p><strong>Motiv:</strong> {{ report.reason_label }}</p>
+                            <p>{{ report.details }}</p>
+
+                            <form method="post" action="{{ url_for('web.incident_report_review', report_id=report.id) }}" class="form-grid" data-accessible-form novalidate>
+                                <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                                <fieldset class="form-fieldset">
+                                    <legend class="visually-hidden">Moderare raport {{ report.id }}</legend>
+
+                                    <label for="report-resolution-{{ report.id }}">Notă de rezolvare</label>
+                                    <textarea
+                                        id="report-resolution-{{ report.id }}"
+                                        name="resolution_note"
+                                        rows="3"
+                                        required
+                                        placeholder="Explică de ce raportul este confirmat sau respins."
+                                    ></textarea>
+
+                                    <div class="button-row">
+                                        <button type="submit" name="action" value="confirm">Confirmă raportul</button>
+                                        <button type="submit" name="action" value="reject" class="ghost-button">Respinge raportul</button>
+                                    </div>
+                                </fieldset>
+                            </form>
+                        </article>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endif %}
+    </div>
+
+    <div class="content-stack">
+        <section class="panel">
+            <h2>Interacțiuni și notificări</h2>
+            <div class="engagement-summary" role="group" aria-label="Interacțiuni disponibile pentru sesizare">
+                <p class="engagement-metric" id="incident-vote-count">
+                    <strong>{{ vote_count }}</strong>
+                    <span>{% if vote_count == 1 %}susținere{% else %}susțineri{% endif %}</span>
+                </p>
+
+                {% if can_vote %}
+                    <form method="post" action="{{ url_for('web.incident_vote', incident_id=incident.id) }}">
+                        <button
+                            type="submit"
+                            id="incident-vote-button"
+                            aria-pressed="{{ 'true' if has_voted else 'false' }}"
+                            aria-describedby="incident-vote-count"
+                        >
+                            {% if has_voted %}Retrage votul{% else %}Susține sesizarea{% endif %}
+                        </button>
+                    </form>
+                {% else %}
+                    <p class="muted-text">
+                        {% if incident.is_hidden %}
+                            Sesizările ascunse nu mai acceptă voturi.
+                        {% else %}
+                            Autorul sesizării nu își poate vota propriul caz.
+                        {% endif %}
+                    </p>
+                {% endif %}
+            </div>
+
+            {% if can_restore_visibility %}
+                <details class="disclosure-card" open>
+                    <summary>Restaurează vizibilitatea</summary>
+                    <form method="post" action="{{ url_for('web.incident_restore_visibility', incident_id=incident.id) }}" class="form-grid" data-accessible-form novalidate>
+                        <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                        <fieldset class="form-fieldset">
+                            <legend class="visually-hidden">Restaurare vizibilitate sesizare</legend>
+
+                            <label for="restore-message">Motivul restaurării</label>
+                            <textarea
+                                id="restore-message"
+                                name="message"
+                                rows="3"
+                                required
+                                placeholder="Explică de ce sesizarea poate reveni în fluxul normal."
+                            ></textarea>
+
+                            <button type="submit">Restaurează sesizarea</button>
+                        </fieldset>
+                    </form>
+                </details>
+            {% endif %}
+
+            {% if can_follow %}
+                <details class="disclosure-card" {% if follow_channels %}open{% endif %}>
+                    <summary>Urmărește sesizarea</summary>
+                    <p class="muted-text">
+                        {% if follow_channels %}
+                            Actualizează canalele prin care vrei să primești noutăți despre această sesizare.
+                        {% else %}
+                            Alege cum vrei să primești notificări când statusul sau departamentul sesizării se schimbă.
+                        {% endif %}
+                    </p>
+                    {% if follow_channels %}
+                        <p class="muted-text">
+                            Active acum:
+                            {% for channel in follow_channels %}
+                                {{ follow_channel_labels[channel] }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </p>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('web.incident_follow', incident_id=incident.id) }}" class="form-grid" data-accessible-form data-follow-form novalidate>
+                        <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                        <p class="inline-hint" data-follow-status role="status" aria-live="polite"></p>
+                        <p class="field-error" data-follow-error role="alert" hidden></p>
+                        <input type="hidden" name="push_subscription_id" value="{{ follow_push_subscription_id or '' }}" data-push-subscription-id>
+
+                        <fieldset class="form-fieldset">
+                            <legend>Canale de notificare</legend>
+
+                            <label class="checkbox-row" for="follow-in-app">
+                                <input id="follow-in-app" type="checkbox" name="channels" value="in_app" {% if 'in_app' in follow_channels %}checked{% endif %}>
+                                Notificări în aplicație
+                            </label>
+
+                            <label class="checkbox-row" for="follow-email">
+                                <input id="follow-email" type="checkbox" name="channels" value="email" {% if 'email' in follow_channels %}checked{% endif %}>
+                                Notificări prin email
+                            </label>
+
+                            <label class="checkbox-row" for="follow-web-push">
+                                <input id="follow-web-push" type="checkbox" name="channels" value="web_push" {% if 'web_push' in follow_channels %}checked{% endif %}>
+                                Notificări pe dispozitivul curent
+                            </label>
+
+                            <button type="submit">Salvează urmărirea</button>
+                        </fieldset>
+                    </form>
+                </details>
+            {% endif %}
+
+            <details class="disclosure-card" {% if has_open_report %}open{% endif %}>
+                <summary>Raportează sesizarea</summary>
+                {% if can_report %}
+                    {% if has_open_report %}
+                        <p class="muted-text">Ai deja un raport deschis pentru această sesizare.</p>
+                    {% else %}
+                        <p class="muted-text">Raportează cazuri duplicate, abuzive sau cu informații incorecte.</p>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('web.incident_report', incident_id=incident.id) }}" class="form-grid" data-accessible-form novalidate>
+                        <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                        <fieldset class="form-fieldset">
+                            <legend class="visually-hidden">Formular de raportare</legend>
+
+                            <label for="report-reason">Motivul raportării</label>
+                            <select id="report-reason" name="reason" required {% if has_open_report %}disabled{% endif %}>
+                                <option value="">Selectează un motiv</option>
+                                {% for value, label in report_reason_choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <label for="report-details">Detalii</label>
+                            <textarea
+                                id="report-details"
+                                name="details"
+                                rows="4"
+                                maxlength="{{ form_limits.incident_report_details }}"
+                                required
+                                {% if has_open_report %}disabled{% endif %}
+                                placeholder="Descrie pe scurt problema raportată."
+                            ></textarea>
+
+                            <button type="submit" {% if has_open_report %}disabled{% endif %}>Trimite raportarea</button>
+                        </fieldset>
+                    </form>
+                {% else %}
+                    <p class="muted-text">
+                        {% if incident.is_hidden %}
+                            Sesizările ascunse nu mai acceptă raportări noi.
+                        {% else %}
+                            Autorul sesizării nu își poate raporta propriul caz.
+                        {% endif %}
+                    </p>
+                {% endif %}
+            </details>
+
+            {% if can_delete_incident %}
+                <details class="disclosure-card">
+                    <summary>Ștergere definitivă admin</summary>
+                    <form method="post" action="{{ url_for('web.admin_delete_incident', incident_id=incident.id) }}" class="form-grid" data-accessible-form novalidate>
+                        <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                        <fieldset class="form-fieldset">
+                            <legend class="visually-hidden">Ștergere definitivă sesizare</legend>
+
+                            <label for="delete-confirmation">Scrie DELETE pentru confirmare</label>
+                            <input
+                                id="delete-confirmation"
+                                type="text"
+                                name="confirmation"
+                                required
+                                autocomplete="off"
+                                placeholder="DELETE"
+                            >
+
+                            <button type="submit" class="ghost-button">Șterge definitiv</button>
+                        </fieldset>
+                    </form>
+                </details>
+            {% endif %}
+        </section>
+
+        <section class="panel">
+            <h2>Locație</h2>
+            <p class="muted-text">Coordonate: {{ '%.6f'|format(incident.latitude) }}, {{ '%.6f'|format(incident.longitude) }}</p>
+            <div
+                id="incident-detail-map"
+                class="map-block compact-map"
+                data-lat="{{ incident.latitude }}"
+                data-lng="{{ incident.longitude }}"
+                data-title="{{ incident.title }}"
+                aria-label="Harta poziției sesizării"
+            ></div>
+        </section>
+
+        {% if can_update_status %}
+            <section class="form-card">
+                <h2>Actualizare operațională</h2>
+                <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid" data-accessible-form novalidate>
+                    <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                    <fieldset class="form-fieldset">
+                        <legend class="visually-hidden">Actualizare operațională</legend>
+                        <input type="hidden" name="action" value="set_status">
+
+                        <label for="status">Status nou</label>
+                        <select id="status" name="status" required>
+                            {% for value, label in operator_status_choices %}
+                                <option value="{{ value }}" {% if incident.status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="status-message">Mesaj pentru istoric</label>
+                        <textarea
+                            id="status-message"
+                            name="message"
+                            rows="4"
+                            placeholder="Exemplu: echipa ajunge în teren mâine dimineață."
+                        ></textarea>
+
+                        <button type="submit">Salvează statusul</button>
+                    </fieldset>
+                </form>
+            </section>
+        {% endif %}
+
+        {% if can_mark_irrelevant %}
+            <section class="form-card">
+                <h2>Nu ține de departamentul meu</h2>
+                <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid" data-accessible-form novalidate>
+                    <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                    <fieldset class="form-fieldset">
+                        <legend class="visually-hidden">Retrimitere la triere</legend>
+                        <input type="hidden" name="action" value="mark_irrelevant">
+
+                        <label for="irrelevant-message">Motivație obligatorie</label>
+                        <textarea
+                            id="irrelevant-message"
+                            name="message"
+                            rows="4"
+                            required
+                            placeholder="Explică de ce sesizarea trebuie întoarsă la triere."
+                        ></textarea>
+
+                        <button type="submit">Retrimite la triere</button>
+                    </fieldset>
+                </form>
+            </section>
+        {% endif %}
+
+        {% if can_dispatch_incident %}
+            <section class="form-card">
+                <h2>Triere și distribuire</h2>
+                <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid" data-accessible-form novalidate>
+                    <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                    <fieldset class="form-fieldset">
+                        <legend class="visually-hidden">Triere și distribuire</legend>
+                        <input type="hidden" name="action" value="assign_department">
+
+                        <label for="assigned_department_id">Departament țintă</label>
+                        <select id="assigned_department_id" name="assigned_department_id" required>
+                            {% for department in departments %}
+                                <option
+                                    value="{{ department.id }}"
+                                    {% if (
+                                        incident.status == 'in_triere' and incident.suggested_department_id == department.id
+                                    ) or (
+                                        incident.status != 'in_triere' and incident.assigned_department_id == department.id
+                                    ) %}selected{% endif %}
+                                >
+                                    {{ department.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <label for="dispatch-message">Motivație obligatorie</label>
+                        <textarea
+                            id="dispatch-message"
+                            name="message"
+                            rows="4"
+                            required
+                            placeholder="Explică de ce alegi sau schimbi departamentul."
+                        ></textarea>
+
+                        <button type="submit">Trimite către departament</button>
+                    </fieldset>
+                </form>
+            </section>
+
+            {% if incident.suggested_department %}
+                <section class="form-card">
+                    <h2>Respinge sugestia cetățeanului</h2>
+                    <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid" data-accessible-form novalidate>
+                        <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                        <fieldset class="form-fieldset">
+                            <legend class="visually-hidden">Respingere sugestie inițială</legend>
+                            <input type="hidden" name="action" value="reject_suggestion">
+
+                            <label for="reject-suggestion-message">Motivație obligatorie</label>
+                            <textarea
+                                id="reject-suggestion-message"
+                                name="message"
+                                rows="4"
+                                required
+                                placeholder="Explică de ce sugestia inițială nu este potrivită."
+                            ></textarea>
+
+                            <button type="submit">Respinge sugestia</button>
+                        </fieldset>
+                    </form>
+                </section>
+            {% endif %}
+
+            <section class="form-card">
+                <h2>Respinge definitiv sesizarea</h2>
+                <form method="post" action="{{ url_for('web.incident_update', incident_id=incident.id) }}" class="form-grid" data-accessible-form novalidate>
+                    <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                    <fieldset class="form-fieldset">
+                        <legend class="visually-hidden">Respingere definitivă</legend>
+                        <input type="hidden" name="action" value="reject_incident">
+
+                        <label for="reject-incident-message">Motivație obligatorie</label>
+                        <textarea
+                            id="reject-incident-message"
+                            name="message"
+                            rows="4"
+                            required
+                            placeholder="Explică de ce sesizarea este respinsă definitiv."
+                        ></textarea>
+
+                        <button type="submit">Respinge sesizarea</button>
+                    </fieldset>
+                </form>
+            </section>
+        {% endif %}
+
+        {% if can_manage_photo_pertinence %}
+            <section class="form-card">
+                <h2>Fotografii pertinente pentru departament</h2>
+                <form method="post" action="{{ url_for('web.incident_photo_pertinence', incident_id=incident.id) }}" class="form-grid" data-accessible-form novalidate>
+                    <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+                    <fieldset class="form-fieldset">
+                        <legend class="visually-hidden">Selectarea fotografiilor pertinente</legend>
+                        {% for photo in incident.photos %}
+                            <label class="checkbox-row" for="photo-{{ photo.id }}">
+                                <input
+                                    id="photo-{{ photo.id }}"
+                                    type="checkbox"
+                                    name="pertinent_photo_ids"
+                                    value="{{ photo.id }}"
+                                    {% if photo.is_pertinent %}checked{% endif %}
+                                >
+                                {{ photo.original_name }}
+                            </label>
+                        {% endfor %}
+
+                        <label for="photo-message">Motivație obligatorie</label>
+                        <textarea
+                            id="photo-message"
+                            name="message"
+                            rows="4"
+                            required
+                            placeholder="Explică de ce anumite fotografii sunt sau nu sunt utile departamentului."
+                        ></textarea>
+
+                        <button type="submit">Actualizează pertinența fotografiilor</button>
+                    </fieldset>
+                </form>
+            </section>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

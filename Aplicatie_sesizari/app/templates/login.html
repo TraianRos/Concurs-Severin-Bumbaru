@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="single-column">
+    <article class="form-card narrow-card">
+        <p class="eyebrow">Autentificare</p>
+        <h1>Intră în platformă</h1>
+        <p class="muted-text">Operatorii, administratorii și cetățenii folosesc aceeași pagină de autentificare.</p>
+
+        <form method="post" class="form-grid" data-accessible-form novalidate>
+            <div class="form-error-summary" data-form-error-summary role="alert" aria-atomic="true" tabindex="-1" hidden></div>
+            <label for="email">Email</label>
+            <input id="email" type="email" name="email" autocomplete="email" maxlength="{{ form_limits.email }}" required>
+
+            <label for="password">Parola</label>
+            <input
+                id="password"
+                type="password"
+                name="password"
+                autocomplete="current-password"
+                maxlength="{{ form_limits.password }}"
+                required
+            >
+
+            <button type="submit">Autentificare</button>
+        </form>
+
+        <p class="inline-hint">
+            Nu ai cont?
+            <a class="text-link" href="{{ url_for('web.register') }}">Creează unul acum</a>.
+        </p>
+    </article>
+</section>
+{% endblock %}
